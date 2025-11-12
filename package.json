@@ -1,0 +1,12 @@
+{
+  "name": "my-game-app",
+  "version": "1.0.0",
+  "description": "게임 애플리케이션 - 자동 업데이트 지원",
+  "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/k30339035/mytest.git"
+  },
+  "author": "",
+  "license": "MIT"
+}

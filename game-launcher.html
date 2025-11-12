@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게임 런처 - 자동 업데이트</title>
+    <link rel="stylesheet" href="launcher-style.css">
+</head>
+<body>
+    <div class="launcher-container">
+        <header>
+            <h1>🎮 게임 런처</h1>
+            <div class="version-info">
+                <span>현재 버전: <strong id="currentVersion">1.0.0</strong></span>
+            </div>
+        </header>
+
+        <main>
+            <div id="updateStatus" class="status-container">
+                <div class="status-icon">⏳</div>
+                <p class="status-text">업데이트 확인 중...</p>
+            </div>
+
+            <div id="updateInfo" class="update-info hidden">
+                <h2>🎉 새로운 업데이트가 있습니다!</h2>
+                <div class="version-compare">
+                    <span class="current">현재: <strong id="currentVer"></strong></span>
+                    <span class="arrow">→</span>
+                    <span class="latest">최신: <strong id="latestVer"></strong></span>
+                </div>
+
+                <div class="release-notes">
+                    <h3>업데이트 내역</h3>
+                    <div id="releaseNotes"></div>
+                </div>
+
+                <div class="button-group">
+                    <button id="downloadBtn" class="btn btn-primary">
+                        📥 업데이트 다운로드
+                    </button>
+                    <button id="laterBtn" class="btn btn-secondary">
+                        나중에
+                    </button>
+                </div>
+            </div>
+
+            <div id="noUpdateInfo" class="no-update-info hidden">
+                <div class="status-icon">✅</div>
+                <h2>최신 버전을 사용 중입니다</h2>
+                <p>현재 설치된 버전이 최신 버전입니다.</p>
+            </div>
+
+            <div id="errorInfo" class="error-info hidden">
+                <div class="status-icon">⚠️</div>
+                <h2>업데이트 확인 실패</h2>
+                <p id="errorMessage"></p>
+            </div>
+
+            <button id="launchGameBtn" class="btn btn-launch">
+                🚀 게임 시작
+            </button>
+        </main>
+
+        <footer>
+            <div class="auto-check-info">
+                <label>
+                    <input type="checkbox" id="autoCheckToggle" checked>
+                    자동 업데이트 확인 (1시간마다)
+                </label>
+            </div>
+            <button id="manualCheckBtn" class="btn btn-small">
+                🔄 수동으로 업데이트 확인
+            </button>
+        </footer>
+    </div>
+
+    <!-- 업데이트 체커 모듈 로드 -->
+    <script src="updateChecker.js"></script>
+
+    <!-- 런처 앱 로직 -->
+    <script src="launcher-app.js"></script>
+</body>
+</html>
