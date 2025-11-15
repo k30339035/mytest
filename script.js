@@ -16,7 +16,7 @@ class DominoGame3D {
 
         this.settings = {
             dominoSize: 1.5,
-            dominoSpacing: 20,
+            dominoSpacing: 15,
             autoRotate: true
         };
 
@@ -319,71 +319,130 @@ class DominoGame3D {
 
         const chars = name.replace(/\s/g, '').split('');
         const fontSize = 100;
-        const charSpacing = fontSize * 1.8;
+        const charSpacing = fontSize * 2.5; // 글자 간격 증가
         const startX = -(chars.length - 1) * charSpacing / 2;
 
-        let allPoints = [];
+        let allCharPoints = []; // 각 글자별로 분리된 포인트 배열
 
+        // 각 글자마다 외곽선 포인트 추출 및 정렬
         chars.forEach((char, charIndex) => {
             const outline = this.extractTextOutline(char, fontSize);
 
-            outline.forEach(point => {
-                allPoints.push({
-                    x: startX + charIndex * charSpacing + point.x - fontSize * 0.75,
-                    z: point.y - fontSize * 0.75
-                });
-            });
+            const charPoints = outline.map(point => ({
+                x: startX + charIndex * charSpacing + point.x - fontSize * 0.75,
+                z: point.y - fontSize * 0.75
+            }));
+
+            // 각 글자의 포인트를 경로로 정렬
+            const sortedCharPoints = this.sortPointsByPath(charPoints);
+            allCharPoints.push(sortedCharPoints);
         });
 
-        const sortedPoints = this.sortPointsByPath(allPoints);
-
         const dominoSpacing = this.settings.dominoSpacing;
-        let distance = 0;
+        const scale = 0.15;
 
-        const scale = 0.15; // 스케일 조정
+        // 각 글자마다 도미노 생성
+        for (let charIndex = 0; charIndex < allCharPoints.length; charIndex++) {
+            const charPoints = allCharPoints[charIndex];
+            let distance = 0;
 
-        for (let i = 0; i < sortedPoints.length - 1; i++) {
-            const p1 = sortedPoints[i];
-            const p2 = sortedPoints[i + 1];
-            const dx = p2.x - p1.x;
-            const dz = p2.z - p1.z;
-            const segmentLength = Math.sqrt(dx * dx + dz * dz);
+            for (let i = 0; i < charPoints.length - 1; i++) {
+                const p1 = charPoints[i];
+                const p2 = charPoints[i + 1];
+                const dx = p2.x - p1.x;
+                const dz = p2.z - p1.z;
+                const segmentLength = Math.sqrt(dx * dx + dz * dz);
 
-            distance += segmentLength;
+                distance += segmentLength;
 
-            if (distance >= dominoSpacing) {
-                const angle = Math.atan2(dz, dx);
-                this.createDomino(
-                    p2.x * scale,
-                    p2.z * scale,
-                    angle
-                );
-                distance = 0;
+                if (distance >= dominoSpacing) {
+                    const angle = Math.atan2(dz, dx);
+                    this.createDomino(
+                        p2.x * scale,
+                        p2.z * scale,
+                        angle
+                    );
+                    distance = 0;
+                }
             }
+
+            // 글자 사이 연결 브릿지 도미노 생성
+            if (charIndex < allCharPoints.length - 1) {
+                // 현재 글자의 마지막 포인트
+                const currentLast = charPoints[charPoints.length - 1];
+                // 다음 글자의 첫 포인트
+                const nextFirst = allCharPoints[charIndex + 1][0];
+
+                this.createBridgeDominoes(
+                    currentLast.x * scale,
+                    currentLast.z * scale,
+                    nextFirst.x * scale,
+                    nextFirst.z * scale
+                );
+            }
+        }
+
+        // 마지막 글자와 첫 글자 연결 (원형 구조)
+        if (allCharPoints.length > 0) {
+            const lastChar = allCharPoints[allCharPoints.length - 1];
+            const firstChar = allCharPoints[0];
+
+            const lastPoint = lastChar[lastChar.length - 1];
+            const firstPoint = firstChar[0];
+
+            this.createBridgeDominoes(
+                lastPoint.x * scale,
+                lastPoint.z * scale,
+                firstPoint.x * scale,
+                firstPoint.z * scale
+            );
         }
 
         this.updateDominoCount();
         console.log(`생성된 3D 도미노: ${this.dominoes.length}개`);
     }
 
-    createDomino(x, z, angle) {
+    createBridgeDominoes(x1, z1, x2, z2) {
+        const dx = x2 - x1;
+        const dz = z2 - z1;
+        const distance = Math.sqrt(dx * dx + dz * dz);
+        const angle = Math.atan2(dz, dx);
+
+        const dominoSpacing = this.settings.dominoSpacing * 0.15; // 스케일 적용된 간격
+        const numBridgeDominoes = Math.floor(distance / dominoSpacing);
+
+        for (let i = 1; i <= numBridgeDominoes; i++) {
+            const t = i / (numBridgeDominoes + 1);
+            const x = x1 + dx * t;
+            const z = z1 + dz * t;
+
+            this.createDomino(x, z, angle, true); // 브릿지 도미노 표시
+        }
+    }
+
+    createDomino(x, z, angle, isBridge = false) {
         const size = this.settings.dominoSize;
-        const width = 1.0 * size;   // 너비 증가
-        const height = 5.0 * size;  // 높이 증가
-        const depth = 2.5 * size;   // 깊이 증가
+        const width = 0.8 * size;   // 너비
+        const height = 5.0 * size;  // 높이
+        const depth = 2.0 * size;   // 깊이
 
         // Three.js 메시
         const geometry = new THREE.BoxGeometry(width, height, depth);
+
+        // 브릿지 도미노는 다른 색상
+        const color = isBridge ? 0x9b59b6 : 0x3498db;
+        const emissive = isBridge ? 0x8e44ad : 0x2980b9;
+
         const material = new THREE.MeshStandardMaterial({
-            color: 0x3498db,
+            color: color,
             roughness: 0.4,
             metalness: 0.6,
-            emissive: 0x2980b9,
+            emissive: emissive,
             emissiveIntensity: 0.2
         });
 
         const domino = new THREE.Mesh(geometry, material);
-        domino.position.set(x, height / 2 + 0.1, z); // 바닥에서 살짝 띄움
+        domino.position.set(x, height / 2, z);
         domino.rotation.y = angle;
         domino.castShadow = true;
         domino.receiveShadow = true;
@@ -394,21 +453,29 @@ class DominoGame3D {
         // Cannon.js 물리 바디
         const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
         const body = new CANNON.Body({
-            mass: 2, // 무게 증가로 안정성 향상
+            mass: 1.5,
             shape: shape,
-            material: new CANNON.Material({ friction: 0.8, restitution: 0.05 }),
-            linearDamping: 0.3,  // 선형 감쇠 추가
-            angularDamping: 0.3, // 각속도 감쇠 추가
-            sleepSpeedLimit: 0.1,
-            sleepTimeLimit: 0.5
+            material: new CANNON.Material({ friction: 0.6, restitution: 0.1 }),
+            linearDamping: 0.2,
+            angularDamping: 0.2,
+            sleepSpeedLimit: 0.2,
+            sleepTimeLimit: 0.3
         });
 
-        body.position.set(x, height / 2 + 0.1, z);
+        body.position.set(x, height / 2, z);
         body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle);
 
         // 초기에는 sleep 상태로 설정하여 안정화
         body.allowSleep = true;
         body.sleepState = CANNON.Body.SLEEPING;
+
+        // 충돌 시 깨어나도록 이벤트 리스너 추가
+        body.addEventListener('collide', (event) => {
+            body.wakeUp();
+            if (event.body) {
+                event.body.wakeUp();
+            }
+        });
 
         this.world.addBody(body);
         this.dominoBodies.push(body);
@@ -429,8 +496,14 @@ class DominoGame3D {
                 // Sleep 상태 해제
                 body.wakeUp();
 
-                // 도미노에 힘을 가함 (더 강하게)
-                const force = new CANNON.Vec3(0, 0, -100);
+                // 도미노에 힘을 가함 - 앞쪽 방향으로 밀기
+                const forwardDirection = new CANNON.Vec3(
+                    Math.sin(body.quaternion.toEuler().y),
+                    0,
+                    -Math.cos(body.quaternion.toEuler().y)
+                );
+
+                const force = forwardDirection.scale(150);
                 const worldPoint = new CANNON.Vec3(
                     body.position.x,
                     body.position.y + 3,
@@ -442,23 +515,9 @@ class DominoGame3D {
                 domino.material.color.setHex(0xe74c3c);
                 domino.material.emissive.setHex(0xc0392b);
 
-                // 주변 도미노들도 깨움
-                this.wakeNearbyDominoes(body);
+                console.log('도미노 클릭! 연쇄 반응 시작...');
             }
         }
-    }
-
-    wakeNearbyDominoes(centerBody) {
-        const wakeRadius = 15;
-        this.dominoBodies.forEach(body => {
-            const dx = body.position.x - centerBody.position.x;
-            const dz = body.position.z - centerBody.position.z;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-
-            if (dist < wakeRadius) {
-                body.wakeUp();
-            }
-        });
     }
 
     reset() {
