@@ -1,26 +1,23 @@
 class Domino {
-    constructor(x, y, char, index) {
+    constructor(x, y, angle = 0) {
         this.x = x;
         this.y = y;
-        this.char = char;
-        this.index = index;
-        this.width = 40;
-        this.height = 80;
-        this.angle = 0;
-        this.targetAngle = 0;
+        this.width = 8;
+        this.height = 20;
+        this.angle = angle;
+        this.rotationAngle = 0;
         this.isFalling = false;
         this.hasFallen = false;
         this.fallSpeed = 0;
-        this.baseY = y;
     }
 
     update() {
         if (this.isFalling && !this.hasFallen) {
-            this.fallSpeed += 0.5;
-            this.angle += this.fallSpeed * 0.02;
+            this.fallSpeed += 0.8;
+            this.rotationAngle += this.fallSpeed * 0.015;
 
-            if (this.angle >= Math.PI / 2) {
-                this.angle = Math.PI / 2;
+            if (this.rotationAngle >= Math.PI / 2) {
+                this.rotationAngle = Math.PI / 2;
                 this.hasFallen = true;
             }
         }
@@ -34,45 +31,32 @@ class Domino {
 
     draw(ctx) {
         ctx.save();
-
-        // 도미노의 중심점으로 이동 (하단 중앙)
         ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
-
-        // 그림자
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetX = 5;
-        ctx.shadowOffsetY = 5;
+        ctx.rotate(this.angle + this.rotationAngle);
 
         // 도미노 본체
-        const gradient = ctx.createLinearGradient(-this.width/2, -this.height, this.width/2, 0);
-        gradient.addColorStop(0, '#4facfe');
-        gradient.addColorStop(1, '#00f2fe');
-
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = this.hasFallen ? '#e74c3c' : '#3498db';
         ctx.fillRect(-this.width/2, -this.height, this.width, this.height);
 
         // 테두리
         ctx.strokeStyle = '#2c3e50';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 1;
         ctx.strokeRect(-this.width/2, -this.height, this.width, this.height);
-
-        // 글자 그리기
-        ctx.shadowColor = 'transparent';
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 24px Malgun Gothic';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.char, 0, -this.height/2);
 
         ctx.restore();
     }
 
-    isClicked(mouseX, mouseY) {
-        const dx = mouseX - this.x;
-        const dy = mouseY - this.y;
-        return Math.abs(dx) < this.width/2 && dy > -this.height && dy < 0;
+    getTopPosition() {
+        const topX = this.x + Math.sin(this.angle + this.rotationAngle) * this.height;
+        const topY = this.y - Math.cos(this.angle + this.rotationAngle) * this.height;
+        return { x: topX, y: topY };
+    }
+
+    distanceTo(domino) {
+        return Math.sqrt(
+            Math.pow(this.x - domino.x, 2) +
+            Math.pow(this.y - domino.y, 2)
+        );
     }
 }
 
@@ -83,6 +67,7 @@ class DominoGame {
         this.dominoes = [];
         this.animationId = null;
         this.currentName = '';
+        this.fallingIndex = -1;
 
         this.setupCanvas();
         this.setupEventListeners();
@@ -123,50 +108,154 @@ class DominoGame {
             this.handleCanvasClick(e);
         });
 
-        // 반응형 리사이즈
         window.addEventListener('resize', () => {
             this.setupCanvas();
             if (this.currentName) {
-                this.createDominoes(this.currentName, true);
+                this.createDominoes(this.currentName);
             }
         });
     }
 
-    createDominoes(name, skipAnimation = false) {
+    extractTextOutline(text, fontSize) {
+        // 임시 캔버스 생성
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+
+        tempCanvas.width = fontSize * 1.5;
+        tempCanvas.height = fontSize * 1.5;
+
+        // 텍스트 렌더링
+        tempCtx.font = `bold ${fontSize}px Malgun Gothic, sans-serif`;
+        tempCtx.fillStyle = 'black';
+        tempCtx.textAlign = 'center';
+        tempCtx.textBaseline = 'middle';
+        tempCtx.fillText(text, tempCanvas.width / 2, tempCanvas.height / 2);
+
+        // 픽셀 데이터 가져오기
+        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        const pixels = imageData.data;
+
+        // 외곽선 포인트 찾기
+        const outlinePoints = [];
+        const step = 2; // 샘플링 간격
+
+        for (let y = 0; y < tempCanvas.height; y += step) {
+            for (let x = 0; x < tempCanvas.width; x += step) {
+                const index = (y * tempCanvas.width + x) * 4;
+                const alpha = pixels[index + 3];
+
+                if (alpha > 128) {
+                    // 현재 픽셀이 글자의 일부인지 확인
+                    // 주변 픽셀 중 하나라도 비어있으면 외곽선
+                    let isOutline = false;
+
+                    for (let dy = -step; dy <= step; dy += step) {
+                        for (let dx = -step; dx <= step; dx += step) {
+                            if (dx === 0 && dy === 0) continue;
+
+                            const nx = x + dx;
+                            const ny = y + dy;
+
+                            if (nx >= 0 && nx < tempCanvas.width && ny >= 0 && ny < tempCanvas.height) {
+                                const nIndex = (ny * tempCanvas.width + nx) * 4;
+                                if (pixels[nIndex + 3] < 128) {
+                                    isOutline = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (isOutline) break;
+                    }
+
+                    if (isOutline) {
+                        outlinePoints.push({ x, y });
+                    }
+                }
+            }
+        }
+
+        return outlinePoints;
+    }
+
+    createDominoes(name) {
         this.currentName = name;
         this.dominoes = [];
+        this.fallingIndex = -1;
 
         const chars = name.replace(/\s/g, '').split('');
-        const spacing = 100;
-        const startX = (this.canvas.width - (chars.length - 1) * spacing) / 2;
-        const baseY = this.canvas.height - 100;
+        const fontSize = 150;
+        const charSpacing = fontSize * 1.8;
+        const startX = 100;
+        const startY = this.canvas.height / 2;
 
-        chars.forEach((char, index) => {
-            const domino = new Domino(
-                startX + index * spacing,
-                baseY,
-                char,
-                index
-            );
-            this.dominoes.push(domino);
+        let allPoints = [];
+
+        chars.forEach((char, charIndex) => {
+            const outline = this.extractTextOutline(char, fontSize);
+
+            // 포인트들을 실제 캔버스 좌표로 변환
+            outline.forEach(point => {
+                allPoints.push({
+                    x: startX + charIndex * charSpacing + point.x,
+                    y: startY + point.y - fontSize * 0.75
+                });
+            });
         });
 
-        if (!skipAnimation) {
-            this.showCreationAnimation();
+        // 포인트들을 경로로 정렬 (가장 가까운 점 찾기)
+        const sortedPoints = this.sortPointsByPath(allPoints);
+
+        // 일정 간격으로 도미노 배치
+        const dominoSpacing = 12;
+        let distance = 0;
+
+        for (let i = 0; i < sortedPoints.length - 1; i++) {
+            const p1 = sortedPoints[i];
+            const p2 = sortedPoints[i + 1];
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const segmentLength = Math.sqrt(dx * dx + dy * dy);
+
+            distance += segmentLength;
+
+            if (distance >= dominoSpacing) {
+                const angle = Math.atan2(dy, dx) + Math.PI / 2;
+                this.dominoes.push(new Domino(p2.x, p2.y, angle));
+                distance = 0;
+            }
         }
+
+        console.log(`생성된 도미노: ${this.dominoes.length}개`);
     }
 
-    showCreationAnimation() {
-        let index = 0;
-        const interval = setInterval(() => {
-            if (index < this.dominoes.length) {
-                const domino = this.dominoes[index];
-                domino.y = domino.baseY;
-                index++;
-            } else {
-                clearInterval(interval);
+    sortPointsByPath(points) {
+        if (points.length === 0) return [];
+
+        const sorted = [points[0]];
+        const remaining = points.slice(1);
+
+        while (remaining.length > 0 && sorted.length < 1000) {
+            const last = sorted[sorted.length - 1];
+            let minDist = Infinity;
+            let minIndex = 0;
+
+            for (let i = 0; i < remaining.length; i++) {
+                const dist = Math.sqrt(
+                    Math.pow(remaining[i].x - last.x, 2) +
+                    Math.pow(remaining[i].y - last.y, 2)
+                );
+
+                if (dist < minDist) {
+                    minDist = dist;
+                    minIndex = i;
+                }
             }
-        }, 100);
+
+            sorted.push(remaining[minIndex]);
+            remaining.splice(minIndex, 1);
+        }
+
+        return sorted;
     }
 
     handleCanvasClick(e) {
@@ -174,47 +263,71 @@ class DominoGame {
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
+        // 클릭한 위치에서 가장 가까운 도미노 찾기
+        let closestIndex = -1;
+        let minDist = Infinity;
+
         this.dominoes.forEach((domino, index) => {
-            if (domino.isClicked(mouseX, mouseY) && !domino.isFalling) {
-                this.startDominoEffect(index);
+            const dist = Math.sqrt(
+                Math.pow(domino.x - mouseX, 2) +
+                Math.pow(domino.y - mouseY, 2)
+            );
+
+            if (dist < minDist && dist < 30) {
+                minDist = dist;
+                closestIndex = index;
             }
         });
+
+        if (closestIndex !== -1 && this.fallingIndex === -1) {
+            this.startDominoEffect(closestIndex);
+        }
     }
 
     startDominoEffect(startIndex) {
-        let currentIndex = startIndex;
+        this.fallingIndex = startIndex;
+        this.dominoes[startIndex].fall();
 
-        const fallNext = () => {
-            if (currentIndex < this.dominoes.length) {
-                const domino = this.dominoes[currentIndex];
-                domino.fall();
-                currentIndex++;
-                setTimeout(fallNext, 200);
+        const fallInterval = setInterval(() => {
+            if (this.fallingIndex >= this.dominoes.length - 1) {
+                clearInterval(fallInterval);
+                return;
             }
-        };
 
-        fallNext();
+            // 다음 도미노가 쓰러질 조건 확인
+            const current = this.dominoes[this.fallingIndex];
+
+            if (current.hasFallen || current.rotationAngle > 0.3) {
+                this.fallingIndex++;
+                if (this.fallingIndex < this.dominoes.length) {
+                    this.dominoes[this.fallingIndex].fall();
+                }
+            }
+        }, 50);
     }
 
     reset() {
         this.dominoes = [];
         this.currentName = '';
+        this.fallingIndex = -1;
         document.getElementById('nameInput').value = '';
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     animate() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // 바닥 그리기
-        this.ctx.fillStyle = '#8B4513';
-        this.ctx.fillRect(0, this.canvas.height - 50, this.canvas.width, 50);
 
         // 도미노 업데이트 및 그리기
         this.dominoes.forEach(domino => {
             domino.update();
             domino.draw(this.ctx);
         });
+
+        // 도미노 개수 표시
+        if (this.dominoes.length > 0) {
+            this.ctx.fillStyle = '#333';
+            this.ctx.font = '14px Malgun Gothic';
+            this.ctx.fillText(`도미노 개수: ${this.dominoes.length}`, 10, 20);
+        }
 
         this.animationId = requestAnimationFrame(() => this.animate());
     }
