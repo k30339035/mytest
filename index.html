@@ -1,18 +1,25 @@
 <!DOCTYPE html>
-<html>
-
-  <head>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도미노 게임</title>
     <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>도미노 게임</h1>
+        <div class="input-section">
+            <input type="text" id="nameInput" placeholder="한글 이름을 입력하세요" maxlength="10">
+            <button id="createBtn">생성</button>
+            <button id="resetBtn">초기화</button>
+        </div>
+        <div class="info">
+            <p>이름을 입력하고 '생성'을 누르면 글자 수만큼 도미노가 생성됩니다.</p>
+            <p>첫 번째 도미노를 클릭하여 쓰러뜨려보세요!</p>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
     <script src="script.js"></script>
-  </head>
-  <body>
-    <div id="map-canvas"></div>
-<script src="https://maps.googleapis.com/maps/api/js?sensor=false">
-</script>
-  <script src="Mapster.js"></script>
-  <script src="map-options.js"></script>
-  <script src="script.js"> </script>
-  </body>
-
-  
+</body>
 </html>
