@@ -16,7 +16,7 @@ class DominoGame3D {
 
         this.settings = {
             dominoSize: 1.5,
-            dominoSpacing: 12,  // 간격 줄여서 연쇄 반응이 더 잘 일어나도록
+            dominoSpacing: 25,  // 간격 크게 늘림 (12 -> 25)
             autoRotate: true
         };
 
@@ -245,7 +245,7 @@ class DominoGame3D {
         const pixels = imageData.data;
 
         const outlinePoints = [];
-        const step = 2;
+        const step = 1;  // 2에서 1로 변경 - 더 많은 포인트 추출
 
         for (let y = 0; y < tempCanvas.height; y += step) {
             for (let x = 0; x < tempCanvas.width; x += step) {
@@ -289,7 +289,7 @@ class DominoGame3D {
         const sorted = [points[0]];
         const remaining = points.slice(1);
 
-        while (remaining.length > 0 && sorted.length < 2000) {
+        while (remaining.length > 0 && sorted.length < 10000) {  // 2000에서 10000으로 증가
             const last = sorted[sorted.length - 1];
             let minDist = Infinity;
             let minIndex = 0;
@@ -474,8 +474,8 @@ class DominoGame3D {
             // 충돌 속도 계산
             const relativeVelocity = event.contact.getImpactVelocityAlongNormal();
 
-            // 충분히 강한 충격일 때만 깨우기 (임계값 설정)
-            if (Math.abs(relativeVelocity) > 1.0) {
+            // 충분히 강한 충격일 때만 깨우기 (임계값 높임: 1.0 -> 2.0)
+            if (Math.abs(relativeVelocity) > 2.0) {
                 if (event.body && event.body.sleepState === CANNON.Body.SLEEPING) {
                     event.body.wakeUp();
                 }
@@ -509,11 +509,11 @@ class DominoGame3D {
                     -Math.cos(euler.y)
                 );
 
-                // 더 강한 힘으로 확실하게 쓰러뜨림
-                const force = forwardDirection.scale(200);
+                // 더 강한 힘으로 확실하게 쓰러뜨림 (200 -> 300)
+                const force = forwardDirection.scale(300);
                 const worldPoint = new CANNON.Vec3(
                     body.position.x,
-                    body.position.y + 4,  // 위쪽에서 밀어서 쓰러뜨리기
+                    body.position.y + 4.5,  // 위쪽에서 밀어서 쓰러뜨리기
                     body.position.z
                 );
                 body.applyImpulse(force, worldPoint);
