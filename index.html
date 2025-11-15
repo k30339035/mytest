@@ -3,23 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>도미노 게임</title>
+    <title>3D 도미노 게임 - Professional Edition</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>도미노 게임</h1>
-        <div class="input-section">
-            <input type="text" id="nameInput" placeholder="한글 이름을 입력하세요" maxlength="10">
-            <button id="createBtn">생성</button>
-            <button id="resetBtn">초기화</button>
-        </div>
-        <div class="info">
-            <p>이름을 입력하고 '생성'을 누르면 글자 형태를 따라 도미노가 생성됩니다.</p>
-            <p>도미노를 클릭하여 연쇄적으로 쓰러뜨려보세요!</p>
-        </div>
-        <canvas id="gameCanvas"></canvas>
+    <div id="loading" class="loading-screen">
+        <div class="loader"></div>
+        <p>3D 엔진 로딩 중...</p>
     </div>
+
+    <div class="ui-overlay">
+        <div class="top-panel">
+            <h1>🎯 3D 도미노 게임</h1>
+            <div class="stats">
+                <span id="dominoCount">도미노: 0개</span>
+                <span id="fps">FPS: 60</span>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="input-group">
+                <input type="text" id="nameInput" placeholder="한글 이름을 입력하세요 (예: 사랑, 희망)" maxlength="10">
+                <button id="createBtn" class="btn-primary">
+                    <span>🎲 생성</span>
+                </button>
+                <button id="resetBtn" class="btn-secondary">
+                    <span>🔄 초기화</span>
+                </button>
+            </div>
+
+            <div class="settings">
+                <label>
+                    <input type="range" id="dominoSize" min="0.5" max="2" step="0.1" value="1">
+                    <span>도미노 크기</span>
+                </label>
+                <label>
+                    <input type="range" id="dominoSpacing" min="8" max="20" step="1" value="12">
+                    <span>간격</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="autoRotate" checked>
+                    <span>자동 회전</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <p>💡 <strong>조작법:</strong></p>
+            <ul>
+                <li>마우스 드래그: 카메라 회전</li>
+                <li>휠: 줌 인/아웃</li>
+                <li>도미노 클릭: 쓰러뜨리기</li>
+                <li>우클릭 드래그: 카메라 이동</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Three.js 및 물리 엔진 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

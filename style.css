@@ -5,115 +5,353 @@
 }
 
 body {
-    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
+    font-family: 'Segoe UI', 'Malgun Gothic', '맑은 고딕', sans-serif;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+    color: white;
+}
+
+/* 로딩 스크린 */
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease-out;
+}
+
+.loading-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loader {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #00f2fe;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-screen p {
+    font-size: 18px;
+    color: #00f2fe;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* 캔버스 컨테이너 */
+#canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* UI 오버레이 */
+.ui-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
     padding: 20px;
 }
 
-.container {
-    background: white;
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    max-width: 1000px;
-    width: 100%;
+.ui-overlay > * {
+    pointer-events: auto;
 }
 
-h1 {
-    text-align: center;
-    color: #667eea;
+/* 상단 패널 */
+.top-panel {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px 30px;
     margin-bottom: 20px;
-    font-size: 2.5em;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.input-section {
+.top-panel h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+}
+
+.stats {
     display: flex;
-    gap: 10px;
-    justify-content: center;
+    gap: 30px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.stats span {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 컨트롤 패널 */
+.control-panel {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.input-group {
+    display: flex;
+    gap: 12px;
     margin-bottom: 20px;
     flex-wrap: wrap;
 }
 
 #nameInput {
-    padding: 12px 20px;
-    font-size: 16px;
-    border: 2px solid #667eea;
-    border-radius: 10px;
-    outline: none;
+    flex: 1;
     min-width: 250px;
+    padding: 14px 20px;
+    font-size: 16px;
+    border: 2px solid rgba(102, 126, 234, 0.5);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    outline: none;
     transition: all 0.3s;
+    font-family: inherit;
+}
+
+#nameInput::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 #nameInput:focus {
-    border-color: #764ba2;
-    box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+    border-color: #667eea;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
 }
 
 button {
-    padding: 12px 30px;
+    padding: 14px 28px;
     font-size: 16px;
-    font-weight: bold;
+    font-weight: 600;
     border: none;
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.3s;
     color: white;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-#createBtn {
+.btn-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-#createBtn:hover {
+.btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 
-#resetBtn {
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
 }
 
-#resetBtn:hover {
+.btn-secondary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+    box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
 }
 
-.info {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #666;
+.btn-secondary:active {
+    transform: translateY(0);
+}
+
+/* 설정 섹션 */
+.settings {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
 }
 
-.info p {
-    margin: 5px 0;
+.settings input[type="range"] {
+    width: 120px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
 }
 
-#gameCanvas {
-    display: block;
-    width: 100%;
-    height: 500px;
-    border: 3px solid #667eea;
-    border-radius: 10px;
-    background: linear-gradient(to bottom, #e0f7ff 0%, #ffffff 100%);
+.settings input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
+}
+
+.settings input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
+}
+
+.settings input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
     cursor: pointer;
 }
 
+/* 안내 문구 */
+.instructions {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 400px;
+}
+
+.instructions p {
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.instructions ul {
+    list-style: none;
+    padding: 0;
+}
+
+.instructions li {
+    padding: 8px 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.85);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.instructions li:last-child {
+    border-bottom: none;
+}
+
+/* 반응형 디자인 */
 @media (max-width: 768px) {
-    h1 {
-        font-size: 2em;
+    .ui-overlay {
+        padding: 10px;
     }
 
-    #gameCanvas {
-        height: 400px;
+    .top-panel {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
     }
 
-    .container {
-        padding: 20px;
+    .top-panel h1 {
+        font-size: 22px;
     }
+
+    .stats {
+        gap: 15px;
+        font-size: 14px;
+    }
+
+    .control-panel {
+        padding: 15px;
+    }
+
+    .input-group {
+        flex-direction: column;
+    }
+
+    #nameInput {
+        min-width: 100%;
+    }
+
+    button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .settings {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .instructions {
+        max-width: 100%;
+    }
+}
+
+/* 스크롤바 스타일링 */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.5);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.7);
 }
