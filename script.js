@@ -16,7 +16,7 @@ class DominoGame3D {
 
         this.settings = {
             dominoSize: 1.5,
-            dominoSpacing: 15,
+            dominoSpacing: 12,  // 간격 줄여서 연쇄 반응이 더 잘 일어나도록
             autoRotate: true
         };
 
@@ -67,9 +67,9 @@ class DominoGame3D {
         this.world = new CANNON.World();
         this.world.gravity.set(0, -15, 0); // 중력 (약하게 조정)
         this.world.broadphase = new CANNON.NaiveBroadphase();
-        this.world.solver.iterations = 10;
-        this.world.defaultContactMaterial.friction = 0.8; // 마찰력 증가
-        this.world.defaultContactMaterial.restitution = 0.05; // 반발력 감소
+        this.world.solver.iterations = 20; // 정확한 충돌 감지를 위해 증가
+        this.world.defaultContactMaterial.friction = 0.5;
+        this.world.defaultContactMaterial.restitution = 0.05;
         this.world.allowSleep = true; // Sleep 모드 활성화
     }
 
@@ -455,11 +455,11 @@ class DominoGame3D {
         const body = new CANNON.Body({
             mass: 1.5,
             shape: shape,
-            material: new CANNON.Material({ friction: 0.6, restitution: 0.1 }),
-            linearDamping: 0.2,
-            angularDamping: 0.2,
-            sleepSpeedLimit: 0.2,
-            sleepTimeLimit: 0.3
+            material: new CANNON.Material({ friction: 0.5, restitution: 0.05 }),
+            linearDamping: 0.1,  // 감쇠 줄여서 충돌 시 힘이 더 전달되도록
+            angularDamping: 0.1,
+            sleepSpeedLimit: 0.5,  // sleep 기준 높여서 쉽게 안 깨어나도록
+            sleepTimeLimit: 0.2
         });
 
         body.position.set(x, height / 2, z);
@@ -469,11 +469,16 @@ class DominoGame3D {
         body.allowSleep = true;
         body.sleepState = CANNON.Body.SLEEPING;
 
-        // 충돌 시 깨어나도록 이벤트 리스너 추가
+        // 충돌 시 조건부로 깨우기 - 충격이 충분히 클 때만
         body.addEventListener('collide', (event) => {
-            body.wakeUp();
-            if (event.body) {
-                event.body.wakeUp();
+            // 충돌 속도 계산
+            const relativeVelocity = event.contact.getImpactVelocityAlongNormal();
+
+            // 충분히 강한 충격일 때만 깨우기 (임계값 설정)
+            if (Math.abs(relativeVelocity) > 1.0) {
+                if (event.body && event.body.sleepState === CANNON.Body.SLEEPING) {
+                    event.body.wakeUp();
+                }
             }
         });
 
@@ -496,17 +501,19 @@ class DominoGame3D {
                 // Sleep 상태 해제
                 body.wakeUp();
 
-                // 도미노에 힘을 가함 - 앞쪽 방향으로 밀기
+                // 도미노에 힘을 가함 - 앞쪽 방향으로 강하게 밀기
+                const euler = body.quaternion.toEuler();
                 const forwardDirection = new CANNON.Vec3(
-                    Math.sin(body.quaternion.toEuler().y),
+                    Math.sin(euler.y),
                     0,
-                    -Math.cos(body.quaternion.toEuler().y)
+                    -Math.cos(euler.y)
                 );
 
-                const force = forwardDirection.scale(150);
+                // 더 강한 힘으로 확실하게 쓰러뜨림
+                const force = forwardDirection.scale(200);
                 const worldPoint = new CANNON.Vec3(
                     body.position.x,
-                    body.position.y + 3,
+                    body.position.y + 4,  // 위쪽에서 밀어서 쓰러뜨리기
                     body.position.z
                 );
                 body.applyImpulse(force, worldPoint);
