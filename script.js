@@ -16,7 +16,7 @@ class DominoGame3D {
 
         this.settings = {
             dominoSize: 1.5,
-            dominoSpacing: 25,  // 간격 크게 늘림 (12 -> 25)
+            dominoSpacing: 30,  // 간격 더 늘림 (25 -> 30)
             autoRotate: true
         };
 
@@ -65,12 +65,12 @@ class DominoGame3D {
     setupPhysics() {
         // Cannon.js 물리 세계 생성
         this.world = new CANNON.World();
-        this.world.gravity.set(0, -15, 0); // 중력 (약하게 조정)
+        this.world.gravity.set(0, -20, 0); // 중력
         this.world.broadphase = new CANNON.NaiveBroadphase();
-        this.world.solver.iterations = 20; // 정확한 충돌 감지를 위해 증가
-        this.world.defaultContactMaterial.friction = 0.5;
-        this.world.defaultContactMaterial.restitution = 0.05;
-        this.world.allowSleep = true; // Sleep 모드 활성화
+        this.world.solver.iterations = 15;
+        this.world.defaultContactMaterial.friction = 0.6;
+        this.world.defaultContactMaterial.restitution = 0.01;
+        this.world.allowSleep = false; // Sleep 모드 비활성화
     }
 
     setupLights() {
@@ -453,34 +453,28 @@ class DominoGame3D {
         // Cannon.js 물리 바디
         const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
         const body = new CANNON.Body({
-            mass: 1.5,
+            mass: 0.0001,  // 거의 0에 가까운 질량으로 시작 (안정화)
             shape: shape,
-            material: new CANNON.Material({ friction: 0.5, restitution: 0.05 }),
-            linearDamping: 0.1,  // 감쇠 줄여서 충돌 시 힘이 더 전달되도록
-            angularDamping: 0.1,
-            sleepSpeedLimit: 0.5,  // sleep 기준 높여서 쉽게 안 깨어나도록
-            sleepTimeLimit: 0.2
+            material: new CANNON.Material({ friction: 0.8, restitution: 0.01 }),
+            linearDamping: 0.5,  // 높은 감쇠로 움직임 억제
+            angularDamping: 0.5
         });
 
         body.position.set(x, height / 2, z);
         body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle);
 
-        // 초기에는 sleep 상태로 설정하여 안정화
-        body.allowSleep = true;
-        body.sleepState = CANNON.Body.SLEEPING;
+        // Sleep 모드 완전 비활성화
+        body.allowSleep = false;
 
-        // 충돌 시 조건부로 깨우기 - 충격이 충분히 클 때만
-        body.addEventListener('collide', (event) => {
-            // 충돌 속도 계산
-            const relativeVelocity = event.contact.getImpactVelocityAlongNormal();
+        // 초기에는 움직임을 최대한 억제
+        body.velocity.set(0, 0, 0);
+        body.angularVelocity.set(0, 0, 0);
 
-            // 충분히 강한 충격일 때만 깨우기 (임계값 높임: 1.0 -> 2.0)
-            if (Math.abs(relativeVelocity) > 2.0) {
-                if (event.body && event.body.sleepState === CANNON.Body.SLEEPING) {
-                    event.body.wakeUp();
-                }
-            }
-        });
+        // 활성화 여부 플래그
+        body.userData = {
+            activated: false,
+            isBridge: isBridge
+        };
 
         this.world.addBody(body);
         this.dominoBodies.push(body);
@@ -497,9 +491,9 @@ class DominoGame3D {
             const domino = intersects[0].object;
             const body = domino.userData.body;
 
-            if (body) {
-                // Sleep 상태 해제
-                body.wakeUp();
+            if (body && !body.userData.activated) {
+                // 도미노 활성화
+                this.activateDomino(body, domino);
 
                 // 도미노에 힘을 가함 - 앞쪽 방향으로 강하게 밀기
                 const euler = body.quaternion.toEuler();
@@ -509,21 +503,55 @@ class DominoGame3D {
                     -Math.cos(euler.y)
                 );
 
-                // 더 강한 힘으로 확실하게 쓰러뜨림 (200 -> 300)
-                const force = forwardDirection.scale(300);
+                // 강한 힘으로 확실하게 쓰러뜨림
+                const force = forwardDirection.scale(400);
                 const worldPoint = new CANNON.Vec3(
                     body.position.x,
-                    body.position.y + 4.5,  // 위쪽에서 밀어서 쓰러뜨리기
+                    body.position.y + 4.5,
                     body.position.z
                 );
                 body.applyImpulse(force, worldPoint);
 
-                // 색상 변경
-                domino.material.color.setHex(0xe74c3c);
-                domino.material.emissive.setHex(0xc0392b);
-
                 console.log('도미노 클릭! 연쇄 반응 시작...');
             }
+        }
+    }
+
+    activateDomino(body, mesh) {
+        if (body.userData.activated) return;
+
+        // 도미노 활성화
+        body.userData.activated = true;
+        body.mass = 1.5;  // 정상 질량으로 변경
+        body.updateMassProperties();
+        body.linearDamping = 0.1;
+        body.angularDamping = 0.1;
+
+        // 색상 변경
+        if (mesh) {
+            mesh.material.color.setHex(0xe74c3c);
+            mesh.material.emissive.setHex(0xc0392b);
+        }
+
+        // 충돌 이벤트 리스너 추가 (한 번만)
+        if (!body.userData.hasCollisionListener) {
+            body.userData.hasCollisionListener = true;
+
+            body.addEventListener('collide', (event) => {
+                if (!event.body.userData) return;
+
+                // 충돌 속도 계산
+                const relativeVelocity = event.contact.getImpactVelocityAlongNormal();
+
+                // 충분히 강한 충격일 때만 다음 도미노 활성화
+                if (Math.abs(relativeVelocity) > 3.0 && !event.body.userData.activated) {
+                    // 다음 도미노 활성화
+                    const nextMesh = this.dominoes.find(d => d.userData.body === event.body);
+                    if (nextMesh) {
+                        this.activateDomino(event.body, nextMesh);
+                    }
+                }
+            });
         }
     }
 
