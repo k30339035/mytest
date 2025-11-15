@@ -170,13 +170,14 @@ class DominoGame3D {
             const name = nameInput.value.trim();
 
             if (name === '') {
-                alert('이름을 입력해주세요!');
+                alert('텍스트를 입력해주세요!');
                 return;
             }
 
-            const koreanRegex = /^[가-힣\s]+$/;
-            if (!koreanRegex.test(name)) {
-                alert('한글만 입력 가능합니다!');
+            // 한글, 영어, 숫자만 허용
+            const validRegex = /^[가-힣a-zA-Z0-9\s]+$/;
+            if (!validRegex.test(name)) {
+                alert('한글, 영어, 숫자만 입력 가능합니다!');
                 return;
             }
 
