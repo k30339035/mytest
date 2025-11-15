@@ -15,8 +15,8 @@ class DominoGame3D {
         this.mouse = new THREE.Vector2();
 
         this.settings = {
-            dominoSize: 1,
-            dominoSpacing: 12,
+            dominoSize: 1.5,
+            dominoSpacing: 20,
             autoRotate: true
         };
 
@@ -65,11 +65,12 @@ class DominoGame3D {
     setupPhysics() {
         // Cannon.js 물리 세계 생성
         this.world = new CANNON.World();
-        this.world.gravity.set(0, -30, 0); // 중력
+        this.world.gravity.set(0, -15, 0); // 중력 (약하게 조정)
         this.world.broadphase = new CANNON.NaiveBroadphase();
-        this.world.solver.iterations = 20;
-        this.world.defaultContactMaterial.friction = 0.4;
-        this.world.defaultContactMaterial.restitution = 0.1;
+        this.world.solver.iterations = 10;
+        this.world.defaultContactMaterial.friction = 0.8; // 마찰력 증가
+        this.world.defaultContactMaterial.restitution = 0.05; // 반발력 감소
+        this.world.allowSleep = true; // Sleep 모드 활성화
     }
 
     setupLights() {
@@ -366,9 +367,9 @@ class DominoGame3D {
 
     createDomino(x, z, angle) {
         const size = this.settings.dominoSize;
-        const width = 0.6 * size;
-        const height = 4 * size;
-        const depth = 1.5 * size;
+        const width = 1.0 * size;   // 너비 증가
+        const height = 5.0 * size;  // 높이 증가
+        const depth = 2.5 * size;   // 깊이 증가
 
         // Three.js 메시
         const geometry = new THREE.BoxGeometry(width, height, depth);
@@ -381,7 +382,7 @@ class DominoGame3D {
         });
 
         const domino = new THREE.Mesh(geometry, material);
-        domino.position.set(x, height / 2, z);
+        domino.position.set(x, height / 2 + 0.1, z); // 바닥에서 살짝 띄움
         domino.rotation.y = angle;
         domino.castShadow = true;
         domino.receiveShadow = true;
@@ -392,13 +393,21 @@ class DominoGame3D {
         // Cannon.js 물리 바디
         const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
         const body = new CANNON.Body({
-            mass: 1,
+            mass: 2, // 무게 증가로 안정성 향상
             shape: shape,
-            material: new CANNON.Material({ friction: 0.4, restitution: 0.1 })
+            material: new CANNON.Material({ friction: 0.8, restitution: 0.05 }),
+            linearDamping: 0.3,  // 선형 감쇠 추가
+            angularDamping: 0.3, // 각속도 감쇠 추가
+            sleepSpeedLimit: 0.1,
+            sleepTimeLimit: 0.5
         });
 
-        body.position.set(x, height / 2, z);
+        body.position.set(x, height / 2 + 0.1, z);
         body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle);
+
+        // 초기에는 sleep 상태로 설정하여 안정화
+        body.allowSleep = true;
+        body.sleepState = CANNON.Body.SLEEPING;
 
         this.world.addBody(body);
         this.dominoBodies.push(body);
@@ -416,11 +425,14 @@ class DominoGame3D {
             const body = domino.userData.body;
 
             if (body) {
-                // 도미노에 힘을 가함
-                const force = new CANNON.Vec3(0, 0, -50);
+                // Sleep 상태 해제
+                body.wakeUp();
+
+                // 도미노에 힘을 가함 (더 강하게)
+                const force = new CANNON.Vec3(0, 0, -100);
                 const worldPoint = new CANNON.Vec3(
                     body.position.x,
-                    body.position.y + 2,
+                    body.position.y + 3,
                     body.position.z
                 );
                 body.applyImpulse(force, worldPoint);
@@ -428,8 +440,24 @@ class DominoGame3D {
                 // 색상 변경
                 domino.material.color.setHex(0xe74c3c);
                 domino.material.emissive.setHex(0xc0392b);
+
+                // 주변 도미노들도 깨움
+                this.wakeNearbyDominoes(body);
             }
         }
+    }
+
+    wakeNearbyDominoes(centerBody) {
+        const wakeRadius = 15;
+        this.dominoBodies.forEach(body => {
+            const dx = body.position.x - centerBody.position.x;
+            const dz = body.position.z - centerBody.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+
+            if (dist < wakeRadius) {
+                body.wakeUp();
+            }
+        });
     }
 
     reset() {
