@@ -16,7 +16,7 @@ class DominoGame3D {
 
         this.settings = {
             dominoSize: 1.5,
-            dominoSpacing: 30,  // 간격 더 늘림 (25 -> 30)
+            dominoSpacing: 25,  // 연쇄 반응을 위한 적절한 간격
             autoRotate: true
         };
 
@@ -450,30 +450,24 @@ class DominoGame3D {
         this.scene.add(domino);
         this.dominoes.push(domino);
 
-        // Cannon.js 물리 바디
+        // Cannon.js 물리 바디 - STATIC 타입으로 시작 (완전히 고정)
         const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
         const body = new CANNON.Body({
-            mass: 0.0001,  // 거의 0에 가까운 질량으로 시작 (안정화)
+            mass: 0,  // mass 0 = STATIC (완전히 고정)
+            type: CANNON.Body.STATIC,  // 명시적으로 STATIC 설정
             shape: shape,
-            material: new CANNON.Material({ friction: 0.8, restitution: 0.01 }),
-            linearDamping: 0.5,  // 높은 감쇠로 움직임 억제
-            angularDamping: 0.5
+            material: new CANNON.Material({ friction: 0.8, restitution: 0.01 })
         });
 
         body.position.set(x, height / 2, z);
         body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle);
 
-        // Sleep 모드 완전 비활성화
-        body.allowSleep = false;
-
-        // 초기에는 움직임을 최대한 억제
-        body.velocity.set(0, 0, 0);
-        body.angularVelocity.set(0, 0, 0);
-
         // 활성화 여부 플래그
         body.userData = {
             activated: false,
-            isBridge: isBridge
+            isBridge: isBridge,
+            originalPosition: { x, y: height / 2, z },
+            originalAngle: angle
         };
 
         this.world.addBody(body);
@@ -503,11 +497,11 @@ class DominoGame3D {
                     -Math.cos(euler.y)
                 );
 
-                // 강한 힘으로 확실하게 쓰러뜨림
-                const force = forwardDirection.scale(400);
+                // 매우 강한 힘으로 확실하게 쓰러뜨림
+                const force = forwardDirection.scale(500);
                 const worldPoint = new CANNON.Vec3(
                     body.position.x,
-                    body.position.y + 4.5,
+                    body.position.y + 5,  // 위쪽에서 밀어서 쓰러뜨리기
                     body.position.z
                 );
                 body.applyImpulse(force, worldPoint);
@@ -520,10 +514,15 @@ class DominoGame3D {
     activateDomino(body, mesh) {
         if (body.userData.activated) return;
 
-        // 도미노 활성화
+        // 도미노 활성화 - STATIC에서 DYNAMIC으로 변경
         body.userData.activated = true;
-        body.mass = 1.5;  // 정상 질량으로 변경
+
+        // 타입을 DYNAMIC으로 변경
+        body.type = CANNON.Body.DYNAMIC;
+        body.mass = 1.5;  // 정상 질량 설정
         body.updateMassProperties();
+
+        // 감쇠 설정
         body.linearDamping = 0.1;
         body.angularDamping = 0.1;
 
@@ -533,21 +532,24 @@ class DominoGame3D {
             mesh.material.emissive.setHex(0xc0392b);
         }
 
+        console.log('도미노 활성화됨!');
+
         // 충돌 이벤트 리스너 추가 (한 번만)
         if (!body.userData.hasCollisionListener) {
             body.userData.hasCollisionListener = true;
 
             body.addEventListener('collide', (event) => {
-                if (!event.body.userData) return;
+                if (!event.body || !event.body.userData) return;
 
                 // 충돌 속도 계산
                 const relativeVelocity = event.contact.getImpactVelocityAlongNormal();
 
                 // 충분히 강한 충격일 때만 다음 도미노 활성화
-                if (Math.abs(relativeVelocity) > 3.0 && !event.body.userData.activated) {
+                if (Math.abs(relativeVelocity) > 2.5 && !event.body.userData.activated) {
                     // 다음 도미노 활성화
                     const nextMesh = this.dominoes.find(d => d.userData.body === event.body);
                     if (nextMesh) {
+                        console.log('충돌로 다음 도미노 활성화! 속도:', relativeVelocity);
                         this.activateDomino(event.body, nextMesh);
                     }
                 }
