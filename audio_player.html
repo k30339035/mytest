@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8살 아이 영어 단어 학습 - 오디오 샘플</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .voice-section {
+            margin-bottom: 40px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .voice-title {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .voice-title::before {
+            content: "🔊";
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .words-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .word-card {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .word-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .word-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .word-english {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .word-korean {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .play-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .normal-speed {
+            background: #667eea;
+            color: white;
+        }
+
+        .normal-speed:hover {
+            background: #5568d3;
+        }
+
+        .slow-speed {
+            background: #764ba2;
+            color: white;
+        }
+
+        .slow-speed:hover {
+            background: #643d8a;
+        }
+
+        .play-btn:active {
+            transform: scale(0.95);
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box strong {
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎧 영어 단어 학습 오디오 샘플</h1>
+        <p class="subtitle">8살 아이를 위한 영어 단어 발음 (10개 단어)</p>
+
+        <div class="info-box">
+            <strong>사용 방법:</strong> 각 단어마다 "보통 속도"와 "느린 속도" 두 가지 옵션이 있습니다.
+            다양한 목소리를 들어보시고 마음에 드는 것을 선택하세요!
+        </div>
+
+        <!-- 미국 영어 -->
+        <div class="voice-section">
+            <div class="voice-title">미국 영어 (여성)</div>
+            <div class="words-grid" id="us-words"></div>
+        </div>
+
+        <!-- 영국 영어 -->
+        <div class="voice-section">
+            <div class="voice-title">영국 영어</div>
+            <div class="words-grid" id="uk-words"></div>
+        </div>
+
+        <!-- 호주 영어 -->
+        <div class="voice-section">
+            <div class="voice-title">호주 영어</div>
+            <div class="words-grid" id="au-words"></div>
+        </div>
+
+        <!-- 캐나다 영어 -->
+        <div class="voice-section">
+            <div class="voice-title">캐나다 영어</div>
+            <div class="words-grid" id="ca-words"></div>
+        </div>
+    </div>
+
+    <script>
+        const words = [
+            { en: "apple", ko: "사과" },
+            { en: "ball", ko: "공" },
+            { en: "cat", ko: "고양이" },
+            { en: "dog", ko: "개" },
+            { en: "elephant", ko: "코끼리" },
+            { en: "fish", ko: "물고기" },
+            { en: "house", ko: "집" },
+            { en: "ice cream", ko: "아이스크림" },
+            { en: "jump", ko: "점프하다" },
+            { en: "kite", ko: "연" }
+        ];
+
+        const voices = [
+            { id: 'us', name: '미국 영어', prefix: 'us' },
+            { id: 'uk', name: '영국 영어', prefix: 'co_uk' },
+            { id: 'au', name: '호주 영어', prefix: 'com_au' },
+            { id: 'ca', name: '캐나다 영어', prefix: 'ca' }
+        ];
+
+        function playAudio(file) {
+            const audio = new Audio(`audio_samples/${file}`);
+            audio.play().catch(e => alert('오디오 재생 실패: ' + e.message));
+        }
+
+        function createWordCard(word, index, voicePrefix) {
+            const wordFile = word.en.replace(' ', '_');
+            const normalFile = `${String(index + 1).padStart(2, '0')}_${voicePrefix}_normal_${wordFile}.mp3`;
+            const slowFile = `${String(index + 1).padStart(2, '0')}_${voicePrefix}_slow_${wordFile}.mp3`;
+
+            return `
+                <div class="word-card">
+                    <div class="word-header">
+                        <span class="word-english">${word.en}</span>
+                        <span class="word-korean">${word.ko}</span>
+                    </div>
+                    <div class="audio-controls">
+                        <button class="play-btn normal-speed" onclick="playAudio('${normalFile}')">
+                            ▶ 보통
+                        </button>
+                        <button class="play-btn slow-speed" onclick="playAudio('${slowFile}')">
+                            ▶ 느림
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 각 목소리별로 단어 카드 생성
+        voices.forEach(voice => {
+            const container = document.getElementById(`${voice.id}-words`);
+            if (container) {
+                container.innerHTML = words.map((word, idx) =>
+                    createWordCard(word, idx, voice.prefix)
+                ).join('');
+            }
+        });
+    </script>
+</body>
+</html>
