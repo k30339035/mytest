@@ -1,18 +1,43 @@
 <!DOCTYPE html>
-<html>
-
-  <head>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>컬러 점프 - Color Jump</title>
     <link rel="stylesheet" href="style.css">
-    <script src="script.js"></script>
-  </head>
-  <body>
-    <div id="map-canvas"></div>
-<script src="https://maps.googleapis.com/maps/api/js?sensor=false">
-</script>
-  <script src="Mapster.js"></script>
-  <script src="map-options.js"></script>
-  <script src="script.js"> </script>
-  </body>
+</head>
+<body>
+    <!-- 게임 UI -->
+    <div id="ui-container">
+        <!-- 상단 HUD -->
+        <div id="hud">
+            <div id="score">점수: <span id="score-value">0</span></div>
+            <div id="best-score">최고: <span id="best-score-value">0</span></div>
+        </div>
 
-  
+        <!-- 타이틀 화면 -->
+        <div id="title-screen" class="screen">
+            <h1 class="game-title">컬러 점프</h1>
+            <p class="subtitle">Color Jump</p>
+            <p class="instruction">탭하여 방향 전환</p>
+            <button id="start-button" class="game-button">시작하기</button>
+        </div>
+
+        <!-- 게임오버 화면 -->
+        <div id="gameover-screen" class="screen hidden">
+            <h2 class="gameover-title">게임 오버</h2>
+            <p class="final-score">점수: <span id="final-score-value">0</span></p>
+            <p class="best-score-display">최고: <span id="best-score-display-value">0</span></p>
+            <button id="retry-button" class="game-button">다시 하기</button>
+        </div>
+    </div>
+
+    <!-- Three.js 렌더링 영역 -->
+    <div id="game-container"></div>
+
+    <!-- Three.js 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 게임 로직 -->
+    <script src="game.js"></script>
+</body>
 </html>
